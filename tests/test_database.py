@@ -8,7 +8,7 @@ from database.queries import add_user, get_user
 async def test_add_and_get_user():
     db = Database(db_path=':memory:')
     
-    # Создаем таблицу перед тестом
+    # Инициализируем таблицу перед тестом
     await db.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -17,11 +17,10 @@ async def test_add_and_get_user():
             role TEXT DEFAULT 'user'
         )
     ''')
-
-    # Добавляем пользователя
-    await add_user('testuser', 123456)
     
-    # Проверяем, что пользователь добавлен
+    # Добавляем пользователя и проверяем
+    await add_user('testuser', 123456)
     user = await get_user('testuser')
+    
     assert user is not None
     assert user[1] == 'user'  # Проверяем роль
