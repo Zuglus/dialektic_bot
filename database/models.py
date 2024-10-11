@@ -20,9 +20,8 @@ class Database:
             raise
 
     # Инициализация базы данных
-    async def init_db():
-        db = Database()
-        await db.execute('''
+    async def init_db(self):
+        await self.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT NOT NULL,
@@ -30,7 +29,7 @@ class Database:
                 role TEXT DEFAULT 'user'
             )
         ''')
-        await db.execute('''
+        await self.execute('''
             CREATE TABLE IF NOT EXISTS contributions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER,

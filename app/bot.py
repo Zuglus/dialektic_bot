@@ -18,7 +18,7 @@ from app.handlers import (
     setup_handlers
 )
 from app.states import ContributionState
-from database.models import init_db
+from database.models import Database
 
 bot = Bot(token=config.API_TOKEN)
 storage = MemoryStorage()
@@ -48,3 +48,9 @@ def setup_handlers(dp: Dispatcher):
 
 # Настройка обработчиков
 setup_handlers(dp)
+
+db = Database()
+
+async def init_bot():
+    await db.init_db()
+    await dp.start_polling(bot)

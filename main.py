@@ -1,9 +1,11 @@
 # main.py
 import asyncio
-from app.bot import dp, bot, init_db  # Импортируем из app.bot
+from app.bot import dp, bot
+from database.models import Database  # Импортируем класс Database
 
 async def main():
-    await init_db()  # Инициализация базы данных
+    db = Database()  # Создаем экземпляр Database
+    await db.init_db()  # Инициализируем базу данных через экземпляр
     await dp.start_polling(bot)  # Запуск поллинга для обработки сообщений
 
 if __name__ == '__main__':
