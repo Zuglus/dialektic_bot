@@ -3,10 +3,11 @@ import pytest
 from database.models import Database
 from database.queries import add_user, get_user
 
+
 @pytest.mark.asyncio
 async def test_add_and_update_user():
     db = Database(db_path=':memory:')
-    
+
     # Инициализация базы данных
     await db.init_db()
 
