@@ -1,45 +1,56 @@
 # app/keyboards.py
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 
-USERS_PER_PAGE = 5
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-def main_keyboard():
-    buttons = [
-        [KeyboardButton(text="Личный кабинет")],
-        [KeyboardButton(text="Зарегистрироваться")],
-        [KeyboardButton(text="Добавить взнос")],
-        [KeyboardButton(text="Назначить роль"), KeyboardButton(text="Просмотреть все взносы")]
-    ]
-    return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+def main_inline_keyboard():
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Личный кабинет", callback_data="my_account")],
+        [InlineKeyboardButton(text="Зарегистрироваться", callback_data="register_user")],
+        [InlineKeyboardButton(text="Добавить взнос", callback_data="contribute")],
+        [InlineKeyboardButton(text="Назначить роль", callback_data="set_role")],
+        [InlineKeyboardButton(text="Просмотреть все взносы", callback_data="view_all_contributions")]
+    ])
+    return keyboard
 
-def cancel_keyboard():
-    buttons = [
-        [KeyboardButton(text="Отмена")]
-    ]
-    return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+def cancel_inline_keyboard():
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_contribution")]
+    ])
+    return keyboard
 
-def account_keyboard():
-    buttons = [
-        [KeyboardButton(text="Просмотреть взносы")],
-        [KeyboardButton(text="Назад в главное меню")]
-    ]
-    return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+def account_inline_keyboard():
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Просмотреть взносы", callback_data="view_contributions")],
+        [InlineKeyboardButton(text="Назад в главное меню", callback_data="back_to_main_menu")]
+    ])
+    return keyboard
 
+def confirm_inline_keyboard():
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Подтвердить", callback_data="confirm_contribution")],
+        [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_contribution")]
+    ])
+    return keyboard
 
 async def generate_user_keyboard(get_all_users, page: int = 1):
-    users = await get_all_users()  # Используем переданную функцию для получения всех пользователей
+    USERS_PER_PAGE = 5
+    users = await get_all_users()
     start = (page - 1) * USERS_PER_PAGE
     end = start + USERS_PER_PAGE
-    users_on_page = users[start:end]  # Получаем пользователей для текущей страницы
+    users_on_page = users[start:end]
     
-    keyboard = InlineKeyboardMarkup(row_width=2)
-    for user in users_on_page:
-        keyboard.add(InlineKeyboardButton(text=user[1], callback_data=f"select_user:{user[1]}"))
+    buttons = [
+        [InlineKeyboardButton(text=user['username'], callback_data=f"select_user:{user['user_id']}")]
+        for user in users_on_page
+    ]
     
-    # Добавляем кнопки для навигации между страницами
+    navigation_buttons = []
     if page > 1:
-        keyboard.add(InlineKeyboardButton(text="⬅️ Предыдущая", callback_data=f"page:{page-1}"))
+        navigation_buttons.append(InlineKeyboardButton(text="⬅️ Предыдущая", callback_data=f"page:{page-1}"))
     if end < len(users):
-        keyboard.add(InlineKeyboardButton(text="➡️ Следующая", callback_data=f"page:{page+1}"))
-
+        navigation_buttons.append(InlineKeyboardButton(text="➡️ Следующая", callback_data=f"page:{page+1}"))
+    if navigation_buttons:
+        buttons.append(navigation_buttons)
+    
+    keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
     return keyboard
