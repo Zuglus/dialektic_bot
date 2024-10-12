@@ -1,4 +1,4 @@
-# queries.py
+# database/queries.py
 from .models import Database
 
 # Добавление нового пользователя в базу данных
@@ -9,7 +9,7 @@ async def add_user(username, chat_id):
 # Получение информации о пользователе по имени пользователя
 async def get_user(username):
     db = Database()
-    return await db.fetchone('SELECT id, role FROM users WHERE username = ?', (username,))
+    return await db.fetchone('SELECT id, username, created_at, updated_at FROM users WHERE username = ?', (username,))
 
 # Добавление взноса в базу данных
 async def add_contribution(user_id, amount, date):

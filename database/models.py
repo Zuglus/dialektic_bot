@@ -10,6 +10,15 @@ class Database:
     async def execute(self, query, params=None):
         try:
             async with aiosqlite.connect(self.db_path) as db:
+                # Если запрос включает изменение данных (INSERT или UPDATE), обновляем поле updated_at
+                if "UPDATE" in query.upper() or "INSERT" in query.upper():
+                    if "users" in query:
+                        query = query.replace(
+                            "WHERE", ", updated_at = CURRENT_TIMESTAMP WHERE")
+                    elif "contributions" in query:
+                        query = query.replace(
+                            "WHERE", ", updated_at = CURRENT_TIMESTAMP WHERE")
+
                 if params:
                     await db.execute(query, params)
                 else:
@@ -26,7 +35,9 @@ class Database:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT NOT NULL,
                 chat_id INTEGER NOT NULL,
-                role TEXT DEFAULT 'user'
+                role TEXT DEFAULT 'user',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
         ''')
         await self.execute('''
@@ -35,6 +46,8 @@ class Database:
                 user_id INTEGER,
                 amount REAL,
                 date TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(user_id) REFERENCES users(id)
             )
         ''')
