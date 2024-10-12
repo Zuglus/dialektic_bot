@@ -1,5 +1,6 @@
 API_TOKEN = "7411758886:AAEal7NWcjAcDlQHvRAgdgKiI53c1Wa7GlY"
 DB_PATH = 'bot_data.db'
+TEST_DB_PATH = 'test_bot_data.db'
 
 # /dialektic_bot
 #     ├── bot.py           # Основной файл для запуска бота

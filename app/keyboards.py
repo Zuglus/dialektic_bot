@@ -1,6 +1,5 @@
-# keyboards.py
+# app/keyboards.py
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
-from services.user_service import UserService
 
 USERS_PER_PAGE = 5
 
@@ -27,8 +26,8 @@ def account_keyboard():
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
 
 
-async def generate_user_keyboard(page: int = 1):
-    users = await UserService.get_all_users()  # Запрашиваем всех пользователей
+async def generate_user_keyboard(get_all_users, page: int = 1):
+    users = await get_all_users()  # Используем переданную функцию для получения всех пользователей
     start = (page - 1) * USERS_PER_PAGE
     end = start + USERS_PER_PAGE
     users_on_page = users[start:end]  # Получаем пользователей для текущей страницы

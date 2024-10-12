@@ -1,12 +1,11 @@
-# handlers.py
+# app/handlers.py
 import logging
 from aiogram import types
 from aiogram.fsm.context import FSMContext
 from app.keyboards import account_keyboard, cancel_keyboard, generate_user_keyboard, main_keyboard
-from services.user_service import UserService
-from services.contribution_service import ContributionService
+from services.user_service import get_user_info, register_user_service
+from services.contribution_service import get_user_contributions, add_user_contribution, get_all_user_contributions
 from app.states import ContributionState
-from database.models import Database  # Импортируем класс Database
 
 
 async def send_welcome(message: types.Message):
@@ -20,14 +19,13 @@ async def send_welcome(message: types.Message):
 async def register_user(message: types.Message):
     username = message.from_user.username
     chat_id = message.from_user.id
-    result_message = await UserService.register_user(username, chat_id)
+    result_message = await register_user_service(username, chat_id)
     await message.answer(result_message, reply_markup=main_keyboard(), parse_mode="Markdown")
 
 
 async def my_account(message: types.Message):
     username = message.from_user.username
-    # Используем сервис для получения информации
-    user = await UserService.get_user_info(username)
+    user = await get_user_info(username)
     if user:
         await message.answer("Ваш личный кабинет:", reply_markup=account_keyboard())
     else:
@@ -36,13 +34,11 @@ async def my_account(message: types.Message):
 
 async def view_contributions(message: types.Message):
     username = message.from_user.username
-    # Получаем информацию о пользователе через сервис
-    user = await UserService.get_user_info(username)
+    user = await get_user_info(username)
 
     if user:
         user_id = user[0]
-        # Получаем взносы через сервис
-        contribution_details = await ContributionService.get_user_contributions(user_id)
+        contribution_details = await get_user_contributions(user_id)
         await message.answer(f"*История взносов:*\n{contribution_details}", parse_mode="Markdown")
     else:
         await message.answer("Вы не зарегистрированы. Нажмите 'Зарегистрироваться' для начала.")
@@ -50,18 +46,16 @@ async def view_contributions(message: types.Message):
 
 async def process_contribution(message: types.Message, state: FSMContext):
     try:
-        amount = float(message.text)  # Проверяем, что введено число
+        amount = float(message.text)
         username = message.from_user.username
-        # Получаем информацию о пользователе через сервис
-        user = await UserService.get_user_info(username)
+        user = await get_user_info(username)
 
         if user:
             user_id = user[0]
             date = message.date.strftime("%Y-%m-%d %H:%M:%S")
-            # Добавляем взнос через сервис
-            result_message = await ContributionService.add_contribution(user_id, amount, date)
+            result_message = await add_user_contribution(user_id, amount, date)
             await message.answer(result_message, reply_markup=main_keyboard())
-            await state.clear()  # Сбрасываем состояние
+            await state.clear()
         else:
             await message.answer("Вы не зарегистрированы. Нажмите кнопку 'Зарегистрироваться' для регистрации.")
     except ValueError:
@@ -77,32 +71,27 @@ async def contribute(message: types.Message, state: FSMContext):
 
 
 async def cancel_contribute(message: types.Message, state: FSMContext):
-    # Получаем текущее состояние пользователя
     current_state = await state.get_state()
-    if current_state == ContributionState.waiting_for_amount:  # Если процесс взноса начался
-        await state.clear()  # Очищаем состояние FSM
-        # Возвращаем пользователя в главное меню
+    if current_state == ContributionState.waiting_for_amount:
+        await state.clear()
         await message.answer("Операция отменена.", reply_markup=main_keyboard())
     else:
-        # Сообщение, если ничего не отменяется
         await message.answer("Нечего отменять.", reply_markup=main_keyboard())
 
 
 async def view_all_contributions(message: types.Message):
     username = message.from_user.username
-    # Получаем информацию о пользователе
-    user = await UserService.get_user_info(username)
+    user = await get_user_info(username)
 
-    if user and user[1] == 'admin':  # Проверяем, является ли пользователь администратором
-        # Получаем все взносы через сервис
-        contribution_details = await ContributionService.get_all_contributions()
+    if user and user[1] == 'admin':
+        contribution_details = await get_all_user_contributions()
         await message.answer(f"*Все взносы:*\n{contribution_details}", parse_mode="Markdown")
     else:
         await message.answer("У вас нет прав для просмотра всех взносов.")
 
 
 async def set_role(message: types.Message):
-    args = message.text.split()  # Ожидаем формат сообщения: "/set_role <username> <role>"
+    args = message.text.split()
     if len(args) != 3:
         await message.answer("Использование: введите имя пользователя и роль через пробел, например: Иван admin.")
         return
@@ -114,18 +103,15 @@ async def set_role(message: types.Message):
         await message.answer("Неверная роль. Доступные роли: user, admin")
         return
 
-    # Проверка, является ли текущий пользователь администратором
     from_user = message.from_user.username
-    user = await UserService.get_user_info(from_user)
+    user = await get_user_info(from_user)
 
     if user and user[1] != 'admin':
         await message.answer("У вас нет прав для назначения ролей.")
         return
 
-    # Назначение роли
     try:
-        db = Database()  # Создаем экземпляр базы данных перед использованием
-        await db.execute('UPDATE users SET role = ? WHERE username = ?', (role, username))
+        await update_user_role(username, role)  # Используем сервис для обновления роли
         await message.answer(f"Роль пользователя {username} изменена на {role}.")
     except Exception as e:
         logging.error(f"Ошибка при назначении роли: {e}")
@@ -160,21 +146,18 @@ async def generate_role_keyboard(username):
 
 async def set_role_callback(callback_query: types.CallbackQuery):
     data = callback_query.data.split(':')
-    username = data[1]  # Извлекаем имя пользователя
-    role = data[2]  # Извлекаем выбранную роль
+    username = data[1]
+    role = data[2]
 
-    # Проверка, является ли текущий пользователь администратором
     from_user = callback_query.from_user.username
-    user = await UserService.get_user_info(from_user)
+    user = await get_user_info(from_user)
 
     if user and user[1] != 'admin':
         await callback_query.message.answer("У вас нет прав для назначения ролей.")
         return
 
-    # Назначение роли
     try:
-        db = Database()
-        await db.execute('UPDATE users SET role = ? WHERE username = ?', (role, username))
+        await update_user_role(username, role)
         await callback_query.message.answer(f"Роль пользователя {username} успешно изменена на {role}.")
     except Exception as e:
         logging.error(f"Ошибка при назначении роли: {e}")

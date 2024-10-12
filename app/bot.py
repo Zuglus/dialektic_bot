@@ -8,7 +8,7 @@ from app.handlers import (
     my_account,
     send_welcome,
     register_user,
-    contribute,  # Обновлено с contribute_prompt на contribute
+    contribute,
     cancel_contribute,
     process_contribution,
     view_all_contributions,
@@ -18,39 +18,30 @@ from app.handlers import (
     setup_handlers
 )
 from app.states import ContributionState
-from database.models import Database
+from database.models import init_db  # Импортируем функциональную инициализацию базы данных
 
 bot = Bot(token=config.API_TOKEN)
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
 
-
 def setup_handlers(dp: Dispatcher):
     # Добавляем обработчик команды /start
     dp.message(Command('start'))(send_welcome)
     dp.message(lambda message: message.text == "Назначить роль")(set_role)
-    dp.message(lambda message: message.text ==
-               "Просмотреть все взносы")(view_all_contributions)
-    dp.message(lambda message: message.text ==
-               "Зарегистрироваться")(register_user)
-    dp.message(lambda message: message.text ==
-               "Добавить взнос")(contribute)  # Обновлено
+    dp.message(lambda message: message.text == "Просмотреть все взносы")(view_all_contributions)
+    dp.message(lambda message: message.text == "Зарегистрироваться")(register_user)
+    dp.message(lambda message: message.text == "Добавить взнос")(contribute)
     dp.message(lambda message: message.text == "Отмена")(cancel_contribute)
     dp.message(lambda message: message.text == "Личный кабинет")(my_account)
-    dp.message(lambda message: message.text == "Назад в главное меню")(
-        back_to_main_menu)  # Добавлен обработчик
+    dp.message(lambda message: message.text == "Назад в главное меню")(back_to_main_menu)
     dp.message(ContributionState.waiting_for_amount)(process_contribution)
 
     # Регистрируем обработчики инлайн-кнопок для личного кабинета
-    dp.callback_query(lambda callback: callback.data ==
-                      "view_contributions")(view_contributions)
-
+    dp.callback_query(lambda callback: callback.data == "view_contributions")(view_contributions)
 
 # Настройка обработчиков
 setup_handlers(dp)
 
-db = Database()
-
 async def init_bot():
-    await db.init_db()
+    await init_db()  # Используем функциональный подход для инициализации базы данных
     await dp.start_polling(bot)
